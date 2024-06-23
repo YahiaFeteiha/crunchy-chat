@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crunchy Chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <audio id="notificationSound">
+    <source src="Notification.wav" type="audio/mpeg">
+  </audio>
+  
+  <div id="container">
+    <div id="loginContainer">
+      <h1>Crunchy Chat</h1>
+      <form id="joinForm">
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="text" id="room" placeholder="Room" required>
+        <button type="submit">Join Chat</button>
+      </form>
+    </div>
+
+    <div id="chatContainer" style="display:none;">
+      <div id="chatHeader">
+        <h2 id="roomName"></h2>
+        <button id="leaveButton">Leave Room</button>
+      </div>
+      <div id="chatBox"></div>
+      <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Type a message..." required>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const userColors = {};
+
+    const joinForm = document.getElementById('joinForm');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+    const chatContainer = document.getElementById('chatContainer');
+    const chatBox = document.getElementById('chatBox');
+    const usernameInput = document.getElementById('username');
+    const roomInput = document.getElementById('room');
+    const roomName = document.getElementById('roomName');
+    const leaveButton = document.getElementById('leaveButton');
+    const loginContainer = document.getElementById('loginContainer');
+    const notificationSound = document.getElementById('notificationSound');
+
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+
+    joinForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = usernameInput.value;
+      const room = roomInput.value;
+      socket.emit('joinRoom', { username, room });
+    });
+
+    socket.on('joinedRoom', (message) => {
+      loginContainer.style.display = 'none';
+      chatContainer.style.display = 'block';
+      roomName.textContent = roomInput.value;
+      chatBox.innerHTML += `<p>${message}</p>`;
+    });
+
+    socket.on('usernameTaken', (message) => {
+      alert(message);
+    });
+
+    socket.on('messageHistory', (messages) => {
+      messages.forEach(msg => {
+        if (!userColors[msg.username]) {
+          userColors[msg.username] = getRandomColor();
+        }
+        chatBox.innerHTML += `<p><strong style="color:${userColors[msg.username]}">${msg.username}:</strong> ${msg.message}</p>`;
+      });
+    });
+
+    socket.on('newMessage', (message) => {
+      if (!userColors[message.username]) {
+        userColors[message.username] = getRandomColor();
+      }
+      chatBox.innerHTML += `<p><strong style="color:${userColors[message.username]}">${message.username}:</strong> ${message.message}</p>`;
+    });
+
+    function playNotificationSound() {
+  if (notificationSound) {
+    notificationSound.play();
+  }
+}
+
+socket.on('newMessage', (message) => {
+  // Play notification sound when a new message is received
+  playNotificationSound();
+
+  // Display the new message in the chat box
+  // Add your code here to display the message in the chat box
+});
+
+    socket.on('userJoined', (message) => {
+      chatBox.innerHTML += `<p><em>${message}</em></p>`;
+    });
+
+    messageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = messageInput.value;
+      socket.emit('message', { message });
+      messageInput.value = '';
+    });
+
+    leaveButton.addEventListener('click', () => {
+      chatContainer.style.display = 'none';
+      loginContainer.style.display = 'block';
+      usernameInput.value = '';
+      roomInput.value = '';
+      chatBox.innerHTML = '';
+      roomName.textContent = '';
+    });
+  </script>
+</body>
+</html>
