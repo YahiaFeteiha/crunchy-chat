@@ -72,7 +72,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       messages.filter((msg) => msg.room === payload.room),
     );
 
-    // Broadcast to the room that a new user has joined, except for the joining user
     client.broadcast
       .to(payload.room)
       .emit('userJoined', `${payload.username} has joined the room`);
